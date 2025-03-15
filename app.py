@@ -31,7 +31,6 @@ def anonymize():
 
     prompt = data['prompt']
     analyzer_results = analyzer.analyze(text=prompt, language='en')
-
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
 
     # Stocker la correspondance entre original et anonymisé

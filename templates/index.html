@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Prompt Anonymization</title>
+</head>
+<body>
+    <h1>Welcome to Private Prompt</h1>
+    <form id="promptForm">
+        <label for="prompt">Enter your text:</label>
+        <input type="text" id="prompt" name="prompt">
+        <button type="submit">Anonymize</button>
+    </form>
+    <p id="result"></p>
+
+    <script>
+        document.getElementById("promptForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let inputText = document.getElementById("prompt").value;
+            
+            fetch("/anonymize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "prompt": inputText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("result").innerText = "Anonymized Text: " + data.anonymized_text;
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    </script>
+</body>
+</html>

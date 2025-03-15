@@ -5,7 +5,8 @@ import os
 
 app = Flask(__name__)
 
-analyzer = AnalyzerEngine()
+# Utiliser le modèle français léger
+analyzer = AnalyzerEngine(models={'fr': 'fr_core_news_sm'})
 anonymizer = AnonymizerEngine()
 
 @app.route('/anonymize', methods=['POST'])
@@ -13,6 +14,7 @@ def anonymize():
     data = request.get_json()
     prompt = data.get('prompt', '')
 
+    # Analyser en français
     analyzer_results = analyzer.analyze(text=prompt, language='fr')
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
 

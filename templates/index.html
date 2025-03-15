@@ -14,7 +14,7 @@
         }
         .container {
             width: 90%;
-            max-width: 1000px;
+            max-width: 800px;
             margin-top: 20px;
         }
         textarea {
@@ -31,8 +31,8 @@
         }
         iframe {
             width: 100%;
-            height: 500px;
-            border: 1px solid #ccc;
+            height: 600px;
+            border: none;
             margin-top: 20px;
         }
     </style>
@@ -43,17 +43,13 @@
     <div class="container">
         <h2>Enter your message</h2>
         <textarea id="userInput" placeholder="Type your message..."></textarea>
-        <button onclick="processAndSend()">Send & Open ChatGPT</button>
+        <button onclick="processAndSend()">Send</button>
         
-        <h3>ChatGPT Interface:</h3>
-        <iframe id="chatFrame" src="https://chat.openai.com/" allow="clipboard-write"></iframe>
+        <h3>ChatGPT Response:</h3>
+        <textarea id="chatResponse" readonly></textarea>
 
-        <h3>Response from ChatGPT:</h3>
-        <textarea id="chatResponse" placeholder="Response will appear here..." readonly></textarea>
-        <button onclick="recontextualizeText()">Recontextualize</button>
-
-        <h3>Recontextualized Text:</h3>
-        <textarea id="recontextualizedText" readonly></textarea>
+        <!-- ChatGPT sous-navigateur intégré -->
+        <iframe id="chatFrame" src="https://chat.openai.com" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
     </div>
 
     <script>
@@ -69,32 +65,29 @@
             let anonymizedData = await anonymizedResponse.json();
             let anonymizedText = anonymizedData.anonymized_text;
 
-            // Injecter le texte anonymisé dans ChatGPT
-            let chatFrame = document.getElementById("chatFrame").contentWindow;
-            navigator.clipboard.writeText(anonymizedText).then(() => {
-                alert("Anonymized text copied! Paste it manually in ChatGPT.");
-            });
-
-            // Demande à l'utilisateur de récupérer la réponse manuellement
-            setTimeout(() => {
-                let responseText = prompt("Paste ChatGPT's response here:");
-                if (responseText) {
-                    document.getElementById("chatResponse").value = responseText;
-                }
-            }, 5000);
+            // Étape 2 : Envoyer le texte anonymisé dans l'iframe de ChatGPT
+            let iframe = document.getElementById("chatFrame").contentWindow;
+            iframe.postMessage({ type: "chat_message", text: anonymizedText }, "*");
         }
 
-        async function recontextualizeText() {
-            let responseText = document.getElementById("chatResponse").value;
+        window.addEventListener("message", function(event) {
+            // Vérification pour s'assurer que le message provient bien de ChatGPT
+            if (event.data && event.data.type === "chat_response") {
+                let responseText = event.data.text;
 
-            let recontextualizedResponse = await fetch("/recontextualize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "response": responseText })
-            });
-            let recontextualizedData = await recontextualizedResponse.json();
-            document.getElementById("recontextualizedText").value = recontextualizedData.recontextualized_text;
-        }
+                // Étape 3 : Recontextualisation automatique
+                fetch("/recontextualize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ "response": responseText })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("chatResponse").value = data.recontextualized_text;
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        });
     </script>
 </body>
 </html>

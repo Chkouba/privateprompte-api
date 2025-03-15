@@ -3,5 +3,3 @@ requests
 presidio-analyzer
 presidio-anonymizer
 spacy
-en-core-web-sm
-fr-core-news-sm

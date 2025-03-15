@@ -48,7 +48,15 @@
                 <input type="text" id="prompt" name="prompt">
                 <button type="submit">Anonymize</button>
             </form>
-            <p id="result"></p>
+            <p id="anonymizedResult"></p>
+
+            <h2>Recontextualizer</h2>
+            <form id="recontextForm">
+                <label for="response">Enter ChatGPT response:</label>
+                <input type="text" id="response" name="response">
+                <button type="submit">Recontextualize</button>
+            </form>
+            <p id="recontextualizedResult"></p>
 
             <!-- Bouton pour ouvrir ChatGPT -->
             <button onclick="window.open('https://chat.openai.com', '_blank')">
@@ -72,7 +80,23 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("result").innerText = "Anonymized Text: " + data.anonymized_text;
+                document.getElementById("anonymizedResult").innerText = "Anonymized Text: " + data.anonymized_text;
+            })
+            .catch(error => console.error("Error:", error));
+        });
+
+        document.getElementById("recontextForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            let responseText = document.getElementById("response").value;
+            
+            fetch("/recontextualize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "response": responseText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("recontextualizedResult").innerText = "Recontextualized Text: " + data.recontextualized_text;
             })
             .catch(error => console.error("Error:", error));
         });

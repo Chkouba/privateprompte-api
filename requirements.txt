@@ -3,4 +3,4 @@ requests
 flask-cors
 presidio-analyzer
 presidio-anonymizer
-gunicorn  # Pour une meilleure gestion en production
+spacy

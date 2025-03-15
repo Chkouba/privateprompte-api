@@ -3,22 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Prompt Anonymization</title>
+    <title>Private Prompt</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        #container { display: flex; height: 90vh; }
+        #anonymizer { width: 30%; padding: 20px; background: #f4f4f4; }
+        #browser { width: 70%; border: none; height: 100%; }
+    </style>
 </head>
 <body>
+
     <h1>Welcome to Private Prompt</h1>
-    <form id="promptForm">
-        <label for="prompt">Enter your text:</label>
-        <input type="text" id="prompt" name="prompt">
-        <button type="submit">Anonymize</button>
-    </form>
-    <p id="result"></p>
+
+    <div id="container">
+        <div id="anonymizer">
+            <h3>Anonymizer</h3>
+            <form id="anonymizeForm">
+                <label for="textInput">Enter your text:</label>
+                <input type="text" id="textInput" name="prompt">
+                <button type="submit">Anonymize</button>
+            </form>
+            <p id="result"></p>
+        </div>
+
+        <!-- Sous-navigateur intégré (iframe) -->
+        <iframe id="browser" src="https://chat.openai.com/" allow="clipboard-write"></iframe>
+    </div>
 
     <script>
-        document.getElementById("promptForm").addEventListener("submit", function(event) {
+        document.getElementById("anonymizeForm").addEventListener("submit", function(event) {
             event.preventDefault();
-            let inputText = document.getElementById("prompt").value;
-            
+            let inputText = document.getElementById("textInput").value;
+
             fetch("/anonymize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -26,10 +42,11 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("result").innerText = "Anonymized Text: " + data.anonymized_text;
+                document.getElementById("result").textContent = "Anonymized Text: " + data.anonymized_text;
             })
             .catch(error => console.error("Error:", error));
         });
     </script>
+
 </body>
 </html>

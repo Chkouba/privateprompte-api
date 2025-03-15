@@ -17,12 +17,19 @@ registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["fr"])
 analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 
-@app.route('/anonymize', methods=['POST'])
+@app.route('/anonymize', methods=['GET', 'POST'])
 def anonymize():
+    if request.method == 'GET':
+        return jsonify({"message": "Utilisez une requête POST avec un JSON contenant 'prompt'."})
+    
     data = request.get_json()
-    prompt = data.get('prompt', '')
+    if not data or 'prompt' not in data:
+        return jsonify({"error": "Le champ 'prompt' est requis"}), 400
+
+    prompt = data['prompt']
     analyzer_results = analyzer.analyze(text=prompt, language='fr')
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
+    
     return jsonify({"anonymized_text": anonymized_text.text})
 
 @app.route('/', methods=['GET'])

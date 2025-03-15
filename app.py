@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 # Utiliser le modèle français léger
-analyzer = AnalyzerEngine(models={'fr': 'fr_core_news_sm'})
+analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
 @app.route('/anonymize', methods=['POST'])

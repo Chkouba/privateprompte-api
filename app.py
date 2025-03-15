@@ -11,7 +11,7 @@ app = Flask(__name__)
 nlp_engine = SpacyNlpEngine()  # Sans utiliser 'model_name'
 nlp_engine.nlp = {"fr": spacy.load("fr_core_news_sm")}
 registry = RecognizerRegistry()
-registry.load_predefined_recognizers(nlp_engine=nlp_engine)
+registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["fr"])
 analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 

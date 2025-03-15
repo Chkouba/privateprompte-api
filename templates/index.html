@@ -28,17 +28,24 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 10px;
-        }
-        iframe {
-            width: 100%;
-            height: 600px;
+            background: #4CAF50;
+            color: white;
             border: none;
-            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .warning {
+            color: #ff5722;
+            margin: 15px 0;
+        }
+        #status {
+            margin: 10px 0;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <h1>Welcome to Private Prompt</h1>
+    <div class="warning">⚠️ Autorisez les popups pour ce site</div>
     
     <div class="container">
         <h2>Enter your message</h2>
@@ -48,44 +55,63 @@
         <h3>ChatGPT Response:</h3>
         <textarea id="chatResponse" readonly></textarea>
 
-        <!-- ChatGPT sous-navigateur intégré -->
-        <iframe id="chatFrame" src="https://chat.openai.com" sandbox="allow-scripts allow-same-origin allow-popups"></iframe>
+        <div id="chatContainer">
+            <button onclick="openChat()">Open ChatGPT</button>
+            <div id="status"></div>
+        </div>
     </div>
 
     <script>
-        async function processAndSend() {
-            let inputText = document.getElementById("userInput").value;
+        let chatWindow;
 
-            // Étape 1 : Anonymisation automatique
-            let anonymizedResponse = await fetch("/anonymize", {
+        async function processAndSend() {
+            const inputText = document.getElementById("userInput").value;
+
+            // Anonymisation
+            const anonymizedResponse = await fetch("/anonymize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ "prompt": inputText })
             });
-            let anonymizedData = await anonymizedResponse.json();
-            let anonymizedText = anonymizedData.anonymized_text;
+            
+            const anonymizedData = await anonymizedResponse.json();
+            const anonymizedText = anonymizedData.anonymized_text;
 
-            // Étape 2 : Envoyer le texte anonymisé dans l'iframe de ChatGPT
-            let iframe = document.getElementById("chatFrame").contentWindow;
-            iframe.postMessage({ type: "chat_message", text: anonymizedText }, "*");
+            // Envoi vers ChatGPT
+            if (chatWindow) {
+                chatWindow.postMessage({ 
+                    type: "private_prompt",
+                    text: anonymizedText 
+                }, "*");
+            }
         }
 
-        window.addEventListener("message", function(event) {
-            // Vérification pour s'assurer que le message provient bien de ChatGPT
-            if (event.data && event.data.type === "chat_response") {
-                let responseText = event.data.text;
+        function openChat() {
+            chatWindow = window.open('/chatgpt-proxy', '_blank', 'width=1200,height=800');
+            
+            const checkInterval = setInterval(() => {
+                try {
+                    chatWindow.postMessage("ping", "*");
+                } catch (e) {
+                    document.getElementById("status").innerHTML = "❌ Connection lost";
+                    clearInterval(checkInterval);
+                }
+            }, 1000);
+        }
 
-                // Étape 3 : Recontextualisation automatique
-                fetch("/recontextualize", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "response": responseText })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("chatResponse").value = data.recontextualized_text;
-                })
-                .catch(error => console.error("Error:", error));
+        window.addEventListener('message', (event) => {
+            if (event.source === chatWindow) {
+                if (event.data.type === "chat_response") {
+                    fetch("/recontextualize", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ "response": event.data.text })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("chatResponse").value = data.recontextualized_text;
+                    });
+                }
             }
         });
     </script>

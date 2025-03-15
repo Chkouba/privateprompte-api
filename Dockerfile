@@ -9,8 +9,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Télécharger les modèles SpaCy nécessaires en une seule commande
-RUN python -m spacy download fr_core_news_sm en_core_web_sm
+# Télécharger les modèles SpaCy séparément (évite les erreurs)
+RUN python -m spacy download fr_core_news_sm
+RUN python -m spacy download en_core_web_sm || true  # Ignore l'erreur si non dispo
 
 # Copier tous les fichiers du projet
 COPY . .
@@ -18,5 +19,5 @@ COPY . .
 # Exposer le port 8000
 EXPOSE 8000
 
-# Démarrer l'application Flask
-CMD ["python", "app.py"]
+# Démarrer l'application Flask avec gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "app:app"]

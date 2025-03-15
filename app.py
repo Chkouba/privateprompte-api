@@ -16,6 +16,9 @@ registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
 analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 
+# Stocker les correspondances entre données originales et anonymisées
+context_store = {}
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -30,7 +33,27 @@ def anonymize():
     analyzer_results = analyzer.analyze(text=prompt, language='en')
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
 
+    # Stocker les correspondances
+    for entity in analyzer_results:
+        original_value = entity.entity_value
+        anonymized_value = f"<{entity.entity_type}>"  # Ex: <US_BANK_NUMBER>
+        context_store[anonymized_value] = original_value  # Associe le tag anonymisé à sa valeur originale
+
     return jsonify({"anonymized_text": anonymized_text.text})
+
+@app.route('/recontextualize', methods=['POST'])
+def recontextualize():
+    data = request.get_json()
+    if not data or 'response' not in data:
+        return jsonify({"error": "Field 'response' is required"}), 400
+
+    response_text = data['response']
+
+    # Remplacer les balises anonymisées par les vraies données
+    for anonymized_value, original_value in context_store.items():
+        response_text = response_text.replace(anonymized_value, original_value)
+
+    return jsonify({"recontextualized_text": response_text})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8000)))

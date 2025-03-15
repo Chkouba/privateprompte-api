@@ -1,45 +1,73 @@
-<script>
-    let chatWindow = null;
-    let retryCount = 0;
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Prompt</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .warning { color: #d32f2f; border: 1px solid #ffcdd2; padding: 15px; border-radius: 5px; background: #ffebee; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; padding: 10px; border: 2px solid #1a73e8; border-radius: 5px; }
+        button { background: #1a73e8; color: white; padding: 12px 25px; border: none; border-radius: 5px; cursor: pointer; }
+        #status { margin: 15px 0; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Private Prompt 🔒</h1>
+    <div class="warning">⚠️ Cliquez d'abord sur "Ouvrir ChatGPT"</div>
 
-    function openChat() {
-        chatWindow = window.open('/chatgpt-proxy', 'chatWindow', 'width=1200,height=800');
+    <div>
+        <h2>Votre message :</h2>
+        <textarea id="userInput" placeholder="Écrivez ici..."></textarea>
+        <button onclick="processAndSend()">Envoyer à ChatGPT</button>
         
-        // Nouveau système de vérification
-        const connectionCheck = setInterval(async () => {
+        <h2>Réponse traitée :</h2>
+        <textarea id="chatResponse" readonly></textarea>
+        
+        <button onclick="openChat()" style="background: #34a853;">Ouvrir ChatGPT</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let chatWindow = null;
+        let sessionId = Date.now();
+
+        async function processAndSend() {
+            const input = document.getElementById("userInput").value;
+            document.getElementById("chatResponse").value = "⚡ Traitement en cours...";
+            
             try {
-                await fetch('/chatgpt-proxy/health-check', {
-                    method: 'HEAD',
-                    timeout: 5000
+                const response = await fetch("/anonymize", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({prompt: input, session: sessionId})
                 });
-                document.getElementById("status").innerHTML = "✅ Connexion active";
-                retryCount = 0;
-            } catch(e) {
-                retryCount++;
-                document.getElementById("status").innerHTML = 
-                    `❌ Problème de connexion (tentative ${retryCount}/3)...`;
                 
-                if(retryCount >= 3) {
-                    clearInterval(connectionCheck);
-                    chatWindow.close();
-                    document.getElementById("status").innerHTML = 
-                        "🚨 Échec de connexion - Réessayez plus tard";
+                const data = await response.json();
+                
+                if(chatWindow && !chatWindow.closed) {
+                    chatWindow.postMessage({
+                        type: "private_prompt",
+                        text: data.anonymized_text,
+                        session: sessionId
+                    }, "*");
                 }
+
+            } catch(error) {
+                document.getElementById("chatResponse").value = "❌ Erreur de connexion";
             }
-        }, 2000);
-    }
+        }
 
-    // Nouveau système de timeout
-    function processAndSend() {
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout après 15s")), 15000));
+        function openChat() {
+            chatWindow = window.open('/chatgpt-proxy', 'chatWindow', 'width=1200,height=800');
+            document.getElementById("status").textContent = "🔗 Connexion établie";
+        }
 
-        Promise.race([
-            processAndSendLogic(),
-            timeoutPromise
-        ]).catch(error => {
-            document.getElementById("chatResponse").value = 
-                "⚠️ Délai d'attente dépassé - Vérifiez votre connexion";
+        window.addEventListener("message", (event) => {
+            if(event.data?.type === "chat_response") {
+                document.getElementById("chatResponse").value = event.data.text;
+            }
         });
-    }
-</script>
+    </script>
+</body>
+</html>

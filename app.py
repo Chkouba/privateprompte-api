@@ -9,7 +9,7 @@ CORS(app)
 
 analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
-anonymized_storage = {}
+session_storage = {}
 
 @app.route("/")
 def home():
@@ -19,19 +19,26 @@ def home():
 def anonymize():
     data = request.get_json()
     text = data.get("prompt", "")
+    session_id = data.get("session", "")
     
     analysis = analyzer.analyze(text=text, language="en")
     anonymized = anonymizer.anonymize(text=text, analyzer_results=analysis)
     
-    anonymized_storage[text] = anonymized.text
+    session_storage[session_id] = {
+        "mapping": {text: anonymized.text}
+    }
+    
     return jsonify({"anonymized_text": anonymized.text})
 
 @app.route("/recontextualize", methods=["POST"])
 def recontextualize():
     data = request.get_json()
     response_text = data.get("response", "")
+    session_id = data.get("session", "")
     
-    for original, anonymized in anonymized_storage.items():
+    mappings = session_storage.get(session_id, {}).get("mapping", {})
+    
+    for original, anonymized in mappings.items():
         response_text = response_text.replace(anonymized, original)
     
     return jsonify({"recontextualized_text": response_text})

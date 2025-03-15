@@ -9,7 +9,9 @@ app = Flask(__name__)
 
 # Configure le moteur NLP pour utiliser le modèle français léger
 nlp_engine = SpacyNlpEngine()  # Sans utiliser 'model_name'
-nlp_engine.nlp = {"fr": spacy.load("fr_core_news_sm")}
+# Met à jour le dictionnaire existant pour y ajouter le modèle français
+nlp_engine.nlp["fr"] = spacy.load("fr_core_news_sm")
+
 registry = RecognizerRegistry()
 registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["fr"])
 analyzer = AnalyzerEngine(registry=registry)

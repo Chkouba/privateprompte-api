@@ -4,7 +4,7 @@ from presidio_anonymizer import AnonymizerEngine
 from flask_cors import CORS
 import requests
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
 analyzer = AnalyzerEngine()

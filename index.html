@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private-Prompt - Navigateur Sécurisé</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #333; }
+        input { width: 70%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; }
+        button:hover { background: #0056b3; }
+        iframe { width: 100%; height: 80vh; border: 1px solid #ccc; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Private-Prompt - ChatGPT Sécurisé</h1>
+    
+    <input type="text" id="promptInput" placeholder="Tapez votre prompt ici...">
+    <button onclick="sendPrompt()">Anonymiser et Copier</button>
+
+    <iframe id="chatgptFrame" src="https://chat.openai.com" allow="clipboard-read; clipboard-write"></iframe>
+
+    <script>
+        async function sendPrompt() {
+            let inputField = document.getElementById("promptInput");
+            let userPrompt = inputField.value;
+
+            if (!userPrompt.trim()) {
+                alert("Veuillez entrer un prompt !");
+                return;
+            }
+
+            try {
+                let response = await fetch("https://privateprompte-api.onrender.com/anonymize", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: userPrompt })
+                });
+
+                let data = await response.json();
+                let anonymizedPrompt = data.anonymized_text || "Erreur d'anonymisation";
+
+                // Copier le prompt anonymisé dans le presse-papier
+                await navigator.clipboard.writeText(anonymizedPrompt);
+               

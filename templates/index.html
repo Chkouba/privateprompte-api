@@ -1,117 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Private Prompt</title>
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
             font-family: Arial, sans-serif;
-        }
-        .container {
-            width: 90%;
             max-width: 800px;
-            margin-top: 20px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .warning {
+            color: #d32f2f;
+            border: 1px solid #ffcdd2;
+            padding: 15px;
+            border-radius: 5px;
+            background: #ffebee;
         }
         textarea {
             width: 100%;
             height: 100px;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-            background: #4CAF50;
-            color: white;
-            border: none;
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px solid #1a73e8;
             border-radius: 5px;
         }
-        .warning {
-            color: #ff5722;
-            margin: 15px 0;
+        button {
+            background: #1a73e8;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
         }
         #status {
-            margin: 10px 0;
+            margin: 15px 0;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <h1>Welcome to Private Prompt</h1>
+    <h1>Private Prompt 🔒</h1>
     <div class="warning">⚠️ Autorisez les popups pour ce site</div>
-    
-    <div class="container">
-        <h2>Enter your message</h2>
-        <textarea id="userInput" placeholder="Type your message..."></textarea>
-        <button onclick="processAndSend()">Send</button>
-        
-        <h3>ChatGPT Response:</h3>
-        <textarea id="chatResponse" readonly></textarea>
 
-        <div id="chatContainer">
-            <button onclick="openChat()">Open ChatGPT</button>
-            <div id="status"></div>
-        </div>
+    <div>
+        <h2>Votre message :</h2>
+        <textarea id="userInput" placeholder="Écrivez votre texte ici..."></textarea>
+        <button onclick="processAndSend()">Envoyer à ChatGPT</button>
+        
+        <h2>Réponse traitée :</h2>
+        <textarea id="chatResponse" readonly></textarea>
+        
+        <button onclick="openChat()" style="background: #34a853;">Ouvrir ChatGPT</button>
+        <div id="status"></div>
     </div>
 
     <script>
-        let chatWindow;
+        let chatWindow = null;
 
         async function processAndSend() {
-            const inputText = document.getElementById("userInput").value;
-
-            // Anonymisation
-            const anonymizedResponse = await fetch("/anonymize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ "prompt": inputText })
-            });
+            const input = document.getElementById("userInput").value;
             
-            const anonymizedData = await anonymizedResponse.json();
-            const anonymizedText = anonymizedData.anonymized_text;
-
-            // Envoi vers ChatGPT
-            if (chatWindow) {
-                chatWindow.postMessage({ 
-                    type: "private_prompt",
-                    text: anonymizedText 
-                }, "*");
+            try {
+                const response = await fetch("/anonymize", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({prompt: input})
+                });
+                
+                const data = await response.json();
+                
+                if(chatWindow) {
+                    chatWindow.postMessage({
+                        type: "private_prompt",
+                        text: data.anonymized_text
+                    }, "*");
+                }
+            } catch(error) {
+                console.error("Erreur :", error);
             }
         }
 
         function openChat() {
-            chatWindow = window.open('/chatgpt-proxy', '_blank', 'width=1200,height=800');
+            chatWindow = window.open("/chatgpt-proxy", "_blank", "width=1200,height=800");
             
-            const checkInterval = setInterval(() => {
+            const checkConnection = setInterval(() => {
                 try {
                     chatWindow.postMessage("ping", "*");
-                } catch (e) {
-                    document.getElementById("status").innerHTML = "❌ Connection lost";
-                    clearInterval(checkInterval);
+                } catch(e) {
+                    document.getElementById("status").textContent = "🚨 Veuillez réouvrir ChatGPT";
+                    clearInterval(checkConnection);
                 }
             }, 1000);
         }
 
-        window.addEventListener('message', (event) => {
-            if (event.source === chatWindow) {
-                if (event.data.type === "chat_response") {
-                    fetch("/recontextualize", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ "response": event.data.text })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById("chatResponse").value = data.recontextualized_text;
-                    });
-                }
+        window.addEventListener("message", (event) => {
+            if(event.source === chatWindow && event.data?.type === "chat_response") {
+                fetch("/recontextualize", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({response: event.data.text})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("chatResponse").value = data.recontextualized_text;
+                });
             }
         });
     </script>

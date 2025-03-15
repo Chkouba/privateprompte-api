@@ -8,8 +8,8 @@ import spacy
 app = Flask(__name__)
 
 # Configure le moteur NLP pour utiliser le modèle français léger
-nlp_engine = SpacyNlpEngine()  # sans passer 'model_name'
-nlp_engine.nlp = spacy.load("fr_core_news_sm")  # charge le modèle français léger manuellement
+nlp_engine = SpacyNlpEngine()  # Sans utiliser 'model_name'
+nlp_engine.nlp = spacy.load("fr_core_news_sm")  # Charge le modèle français léger
 registry = RecognizerRegistry()
 registry.load_predefined_recognizers(nlp_engine=nlp_engine)
 analyzer = AnalyzerEngine(registry=registry)

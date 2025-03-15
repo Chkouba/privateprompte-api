@@ -14,6 +14,9 @@ nlp_engine.nlp["fr"] = spacy.load("fr_core_news_sm")
 
 registry = RecognizerRegistry()
 registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["fr"])
+# Filtrer pour garder uniquement les reconnaisseurs français
+registry.recognizers = [r for r in registry.recognizers if "fr" in r.supported_languages]
+
 analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 

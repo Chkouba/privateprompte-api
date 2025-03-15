@@ -14,13 +14,14 @@
         }
         .container {
             width: 90%;
-            max-width: 1200px;
+            max-width: 800px;
             margin-top: 20px;
         }
         textarea {
             width: 100%;
             height: 100px;
             margin-top: 10px;
+            font-size: 16px;
         }
         button {
             padding: 10px 20px;
@@ -28,33 +29,35 @@
             cursor: pointer;
             margin-top: 10px;
         }
-        iframe {
-            width: 100%;
-            height: 600px;
-            border: none;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
     <h1>Welcome to Private Prompt</h1>
+    
     <div class="container">
-        <h2>Start Chat</h2>
+        <h2>Anonymizer</h2>
         <textarea id="userInput" placeholder="Type your message..."></textarea>
-        <button onclick="sendMessage()">Send to ChatGPT</button>
+        <button onclick="anonymizeText()">Anonymize & Copy</button>
         
-        <h2>ChatGPT Response:</h2>
-        <textarea id="chatResponse" readonly></textarea>
-
-        <!-- ChatGPT intégré directement en IFRAME -->
-        <iframe id="chatFrame" src="https://chat.openai.com"></iframe>
+        <h3>Anonymized Text:</h3>
+        <textarea id="anonymizedText" readonly></textarea>
+        <button onclick="copyToClipboard('anonymizedText')">Copy & Open ChatGPT</button>
+        
+        <hr>
+        
+        <h2>Recontextualizer</h2>
+        <textarea id="chatResponse" placeholder="Paste ChatGPT response here..."></textarea>
+        <button onclick="recontextualizeText()">Recontextualize</button>
+        
+        <h3>Recontextualized Text:</h3>
+        <textarea id="recontextualizedText" readonly></textarea>
+        <button onclick="copyToClipboard('recontextualizedText')">Copy</button>
     </div>
 
     <script>
-        function sendMessage() {
+        function anonymizeText() {
             let inputText = document.getElementById("userInput").value;
 
-            // Étape 1 : Anonymisation
             fetch("/anonymize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -62,31 +65,35 @@
             })
             .then(response => response.json())
             .then(data => {
-                // Étape 2 : Envoyer le texte anonymisé vers ChatGPT en simulant l'entrée utilisateur
-                let iframe = document.getElementById("chatFrame").contentWindow;
-                iframe.postMessage({ type: "chat_message", text: data.anonymized_text }, "*");
+                document.getElementById("anonymizedText").value = data.anonymized_text;
             })
             .catch(error => console.error("Error:", error));
         }
 
-        window.addEventListener("message", function(event) {
-            // Vérification pour s'assurer que le message provient bien de ChatGPT
-            if (event.data && event.data.type === "chat_response") {
-                let responseText = event.data.text;
+        function recontextualizeText() {
+            let responseText = document.getElementById("chatResponse").value;
 
-                // Étape 3 : Recontextualisation automatique
-                fetch("/recontextualize", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "response": responseText })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById("chatResponse").value = data.recontextualized_text;
-                })
-                .catch(error => console.error("Error:", error));
+            fetch("/recontextualize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "response": responseText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("recontextualizedText").value = data.recontextualized_text;
+            })
+            .catch(error => console.error("Error:", error));
+        }
+
+        function copyToClipboard(elementId) {
+            let textarea = document.getElementById(elementId);
+            textarea.select();
+            document.execCommand("copy");
+
+            if (elementId === "anonymizedText") {
+                window.open('https://chat.openai.com', '_blank');
             }
-        });
+        }
     </script>
 </body>
 </html>

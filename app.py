@@ -3,7 +3,7 @@ from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
 from flask_cors import CORS
 
-app = Flask(__name__, template_folder="templates")  # Définit le dossier pour index.html
+app = Flask(__name__, template_folder="templates")
 CORS(app)
 
 # Initialisation des moteurs d'analyse et d'anonymisation
@@ -15,7 +15,7 @@ anonymized_storage = {}
 
 @app.route("/")
 def home():
-    return render_template("index.html")  # Affiche l'interface
+    return render_template("index.html")  # Affiche la page principale
 
 @app.route("/anonymize", methods=["POST"])
 def anonymize():
@@ -33,7 +33,7 @@ def anonymize():
 
 @app.route("/recontextualize", methods=["POST"])
 def recontextualize():
-    """ Recontextualisation du texte après ChatGPT """
+    """ Recontextualisation après ChatGPT """
     data = request.get_json()
     if not data or "response" not in data:
         return jsonify({"error": "Missing 'response' field"}), 400

@@ -1,58 +1,65 @@
-from flask import Flask, request, jsonify, render_template
-from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
-from presidio_analyzer.nlp_engine import SpacyNlpEngine
+from flask import Flask, request, jsonify, Response
+import requests
+from presidio_analyzer import AnalyzerEngine
 from presidio_anonymizer import AnonymizerEngine
-import os
-import spacy
+from flask_cors import CORS
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__)
+CORS(app)  # Autorise les requêtes cross-origin
 
-# Configure NLP engine
-nlp_engine = SpacyNlpEngine()
-nlp_engine.nlp = {"en": spacy.load("en_core_web_sm")}  # Utilisation en anglais
-
-registry = RecognizerRegistry()
-registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
-analyzer = AnalyzerEngine(registry=registry)
+# Initialisation de l'anonymiseur
+analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
-# Stockage temporaire des anonymisations pour recontextualisation
-anonymized_storage = {}
+# URL de ChatGPT (il peut changer si OpenAI modifie son API publique)
+CHATGPT_URL = "https://chat.openai.com/backend-api/conversation"
 
-@app.route("/")
+def anonymize_text(text):
+    """ Anonymise le texte avant de l'envoyer à ChatGPT """
+    results = analyzer.analyze(text=text, language='en')
+    anonymized = anonymizer.anonymize(text=text, analyzer_results=results)
+    return anonymized.text
+
+def recontextualize_text(original, response):
+    """ Recontextualise la réponse en remplaçant les données anonymisées """
+    for entity in original:
+        if original[entity] in response:
+            response = response.replace(original[entity], entity)
+    return response
+
+@app.route("/", methods=["GET"])
 def home():
-    return render_template("index.html")
+    return "Proxy inversé Private Prompt en cours d'exécution !"
 
-@app.route('/anonymize', methods=['POST'])
-def anonymize():
-    data = request.get_json()
-    if not data or 'prompt' not in data:
-        return jsonify({"error": "Field 'prompt' is required"}), 400
+@app.route("/proxy", methods=["POST"])
+def proxy_chatgpt():
+    """ Redirige et modifie les requêtes vers ChatGPT """
+    user_input = request.json.get("prompt", "")
+    if not user_input:
+        return jsonify({"error": "Prompt manquant"}), 400
 
-    prompt = data['prompt']
-    analyzer_results = analyzer.analyze(text=prompt, language='en')
+    # Anonymisation avant l'envoi
+    anonymized_text = anonymize_text(user_input)
 
-    anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
+    # Envoyer la requête anonymisée à ChatGPT
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {request.headers.get('Authorization', '')}"
+    }
+    data = {"model": "text-davinci-003", "prompt": anonymized_text, "max_tokens": 200}
 
-    # Stocker la correspondance entre original et anonymisé
-    anonymized_storage[prompt] = anonymized_text.text
+    chat_response = requests.post(CHATGPT_URL, json=data, headers=headers)
 
-    return jsonify({"anonymized_text": anonymized_text.text})
+    if chat_response.status_code != 200:
+        return jsonify({"error": "Erreur de communication avec ChatGPT"}), chat_response.status_code
 
-@app.route('/recontextualize', methods=['POST'])
-def recontextualize():
-    data = request.get_json()
-    if not data or 'response' not in data:
-        return jsonify({"error": "Field 'response' is required"}), 400
+    chat_response_json = chat_response.json()
+    chatgpt_reply = chat_response_json.get("choices", [{}])[0].get("text", "")
 
-    response_text = data['response']
+    # Recontextualisation automatique
+    recontextualized_text = recontextualize_text({user_input: anonymized_text}, chatgpt_reply)
 
-    # Trouver le texte original correspondant à l'anonymisation
-    for original, anonymized in anonymized_storage.items():
-        if anonymized in response_text:
-            response_text = response_text.replace(anonymized, original)
+    return jsonify({"response": recontextualized_text})
 
-    return jsonify({"recontextualized_text": response_text})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8000)))
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000, debug=True)

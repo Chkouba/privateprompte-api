@@ -3,8 +3,8 @@ FROM python:3.10-slim
 # Installation des dépendances Python nécessaires
 RUN pip install flask presidio-analyzer presidio-anonymizer requests flask-cors
 
-# Installation du modèle SpaCy plus léger
-RUN python -m spacy download en_core_web_sm
+# Installation du modèle SpaCy français léger
+RUN python -m spacy download fr_core_news_sm
 
 # Copie du fichier app.py
 COPY app.py /app/app.py

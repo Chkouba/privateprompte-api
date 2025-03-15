@@ -5,7 +5,6 @@ WORKDIR /app
 COPY requirements.txt requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Télécharger uniquement le modèle SpaCy nécessaire
 RUN python -m spacy download en_core_web_sm
 
 COPY . .

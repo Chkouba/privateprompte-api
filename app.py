@@ -1,23 +1,24 @@
 from flask import Flask, request, jsonify
-from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
+from presidio_analyzer.nlp_engine import SpacyNlpEngine
 from presidio_anonymizer import AnonymizerEngine
 import os
 
 app = Flask(__name__)
 
-# Utiliser le modèle français léger
-analyzer = AnalyzerEngine()
+# Configure le moteur NLP pour utiliser le modèle français léger
+nlp_engine = SpacyNlpEngine(model_name="fr_core_news_sm")
+registry = RecognizerRegistry()
+registry.load_predefined_recognizers(nlp_engine=nlp_engine)
+analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 
 @app.route('/anonymize', methods=['POST'])
 def anonymize():
     data = request.get_json()
     prompt = data.get('prompt', '')
-
-    # Analyser en français
     analyzer_results = analyzer.analyze(text=prompt, language='fr')
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
-
     return jsonify({"anonymized_text": anonymized_text.text})
 
 @app.route('/', methods=['GET'])

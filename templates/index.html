@@ -5,73 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Private Prompt</title>
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            width: 90%;
-            max-width: 800px;
-            margin-top: 20px;
-        }
-        textarea {
-            width: 100%;
-            height: 100px;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+        .container { width: 50%; margin: auto; }
+        textarea { width: 100%; height: 100px; margin-top: 10px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
     <h1>Welcome to Private Prompt</h1>
-    
+
     <div class="container">
-        <h2>Enter your message</h2>
+        <h2>Anonymizer</h2>
         <textarea id="userInput" placeholder="Type your message..."></textarea>
-        <button onclick="processAndSend()">Send</button>
-        
-        <h3>Response from ChatGPT:</h3>
-        <textarea id="chatResponse" readonly></textarea>
+        <button onclick="anonymizeText()">Anonymize</button>
+
+        <h3>Anonymized Text:</h3>
+        <textarea id="anonymizedText" readonly></textarea>
+        <button onclick="copyAndOpenChatGPT()">Copy & Open ChatGPT</button>
+
+        <h2>Recontextualizer</h2>
+        <textarea id="chatResponse" placeholder="Paste ChatGPT response here..."></textarea>
+        <button onclick="recontextualizeText()">Recontextualize</button>
+
+        <h3>Recontextualized Text:</h3>
+        <textarea id="recontextualizedText" readonly></textarea>
     </div>
 
     <script>
-        async function processAndSend() {
+        function anonymizeText() {
             let inputText = document.getElementById("userInput").value;
 
-            // Étape 1 : Anonymisation automatique
-            let anonymizedResponse = await fetch("/anonymize", {
+            fetch("/anonymize", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ "prompt": inputText })
-            });
-            let anonymizedData = await anonymizedResponse.json();
-            let anonymizedText = anonymizedData.anonymized_text;
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("anonymizedText").value = data.anonymized_text;
+            })
+            .catch(error => console.error("Error:", error));
+        }
 
-            // Étape 2 : Ouverture de ChatGPT dans un nouvel onglet avec le texte anonymisé
-            window.open(`https://chat.openai.com?input=${encodeURIComponent(anonymizedText)}`, '_blank');
-
-            // Attendre la réponse manuelle de l'utilisateur depuis ChatGPT
-            let responseText = prompt("Paste ChatGPT's response here:");
-
-            if (responseText) {
-                // Étape 3 : Recontextualisation
-                let recontextualizedResponse = await fetch("/recontextualize", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ "response": responseText })
-                });
-                let recontextualizedData = await recontextualizedResponse.json();
-                document.getElementById("chatResponse").value = recontextualizedData.recontextualized_text;
+        function copyAndOpenChatGPT() {
+            let anonymizedText = document.getElementById("anonymizedText").value;
+            if (!anonymizedText) {
+                alert("Please anonymize your text first!");
+                return;
             }
+
+            navigator.clipboard.writeText(anonymizedText).then(() => {
+                alert("Text copied! Now opening ChatGPT...");
+                window.open("https://chat.openai.com", "_blank");
+            }).catch(err => {
+                console.error("Failed to copy text: ", err);
+            });
+        }
+
+        function recontextualizeText() {
+            let responseText = document.getElementById("chatResponse").value;
+
+            fetch("/recontextualize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ "response": responseText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("recontextualizedText").value = data.recontextualized_text;
+            })
+            .catch(error => console.error("Error:", error));
         }
     </script>
 </body>

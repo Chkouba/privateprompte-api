@@ -3,11 +3,13 @@ from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_analyzer.nlp_engine import SpacyNlpEngine
 from presidio_anonymizer import AnonymizerEngine
 import os
+import spacy
 
 app = Flask(__name__)
 
 # Configure le moteur NLP pour utiliser le modèle français léger
-nlp_engine = SpacyNlpEngine(model_name="fr_core_news_sm")
+nlp_engine = SpacyNlpEngine()  # sans passer 'model_name'
+nlp_engine.nlp = spacy.load("fr_core_news_sm")  # charge le modèle français léger manuellement
 registry = RecognizerRegistry()
 registry.load_predefined_recognizers(nlp_engine=nlp_engine)
 analyzer = AnalyzerEngine(registry=registry)

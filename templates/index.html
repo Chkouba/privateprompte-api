@@ -19,22 +19,25 @@
             margin-top: 20px;
         }
         .left {
-            width: 30%;
+            width: 50%;
             padding: 20px;
         }
         .right {
-            width: 70%;
+            width: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #f0f0f0;
-            min-height: 500px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            margin-top: 10px;
         }
         button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -45,26 +48,27 @@
             <h2>Anonymizer</h2>
             <form id="promptForm">
                 <label for="prompt">Enter your text:</label>
-                <input type="text" id="prompt" name="prompt">
+                <textarea id="prompt" name="prompt"></textarea>
                 <button type="submit">Anonymize</button>
             </form>
-            <p id="anonymizedResult"></p>
+            <p><strong>Anonymized Text:</strong></p>
+            <textarea id="result" readonly></textarea>
+            <button onclick="copyToClipboard('result')">Copy</button>
 
             <h2>Recontextualizer</h2>
             <form id="recontextForm">
                 <label for="response">Enter ChatGPT response:</label>
-                <input type="text" id="response" name="response">
+                <textarea id="response" name="response"></textarea>
                 <button type="submit">Recontextualize</button>
             </form>
-            <p id="recontextualizedResult"></p>
+            <p><strong>Recontextualized Text:</strong></p>
+            <textarea id="recontextResult" readonly></textarea>
+            <button onclick="copyToClipboard('recontextResult')">Copy</button>
 
             <!-- Bouton pour ouvrir ChatGPT -->
             <button onclick="window.open('https://chat.openai.com', '_blank')">
                 Open ChatGPT
             </button>
-        </div>
-        <div class="right">
-            <p>ChatGPT will open in a new tab.</p>
         </div>
     </div>
 
@@ -80,7 +84,7 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("anonymizedResult").innerText = "Anonymized Text: " + data.anonymized_text;
+                document.getElementById("result").value = data.anonymized_text;
             })
             .catch(error => console.error("Error:", error));
         });
@@ -96,10 +100,16 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("recontextualizedResult").innerText = "Recontextualized Text: " + data.recontextualized_text;
+                document.getElementById("recontextResult").value = data.recontextualized_text;
             })
             .catch(error => console.error("Error:", error));
         });
+
+        function copyToClipboard(elementId) {
+            let textarea = document.getElementById(elementId);
+            textarea.select();
+            document.execCommand("copy");
+        }
     </script>
 </body>
 </html>

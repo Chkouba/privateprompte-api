@@ -16,8 +16,8 @@ registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
 analyzer = AnalyzerEngine(registry=registry)
 anonymizer = AnonymizerEngine()
 
-# Stocker les correspondances entre données originales et anonymisées
-context_store = {}
+# Stockage temporaire des anonymisations pour recontextualisation
+anonymized_storage = {}
 
 @app.route("/")
 def home():
@@ -31,13 +31,11 @@ def anonymize():
 
     prompt = data['prompt']
     analyzer_results = analyzer.analyze(text=prompt, language='en')
+
     anonymized_text = anonymizer.anonymize(text=prompt, analyzer_results=analyzer_results)
 
-    # Stocker les correspondances
-    for entity in analyzer_results:
-        original_value = entity.entity_value
-        anonymized_value = f"<{entity.entity_type}>"  # Ex: <US_BANK_NUMBER>
-        context_store[anonymized_value] = original_value  # Associe le tag anonymisé à sa valeur originale
+    # Stocker la correspondance entre original et anonymisé
+    anonymized_storage[prompt] = anonymized_text.text
 
     return jsonify({"anonymized_text": anonymized_text.text})
 
@@ -49,9 +47,10 @@ def recontextualize():
 
     response_text = data['response']
 
-    # Remplacer les balises anonymisées par les vraies données
-    for anonymized_value, original_value in context_store.items():
-        response_text = response_text.replace(anonymized_value, original_value)
+    # Trouver le texte original correspondant à l'anonymisation
+    for original, anonymized in anonymized_storage.items():
+        if anonymized in response_text:
+            response_text = response_text.replace(anonymized, original)
 
     return jsonify({"recontextualized_text": response_text})
 
